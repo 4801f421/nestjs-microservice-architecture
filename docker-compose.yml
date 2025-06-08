@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+    api-gateway:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        command: node dist/apps/api-gateway/main
+        ports:
+            - '3000:3000'
+        env_file:
+            - ./apps/api-gateway/.env
+        depends_on:
+            - redis
+            - users-service
+            - auth-service
+        networks:
+            - app-network
+
+    users-service:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        command: node dist/apps/users-service/main
+        ports:
+            - '3001:3001'
+        env_file:
+            - ./apps/users-service/.env
+        depends_on:
+            - redis
+            - mongo
+        networks:
+            - app-network
+
+    auth-service:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        command: node dist/apps/auth-service/main
+        ports:
+            - '3002:3002'
+        env_file:
+            - ./apps/auth-service/.env
+        depends_on:
+            - redis
+            - users-service
+        networks:
+            - app-network
+
+    mongo:
+        # Using 'latest' as you have it locally.
+        # For production, pin to a specific version e.g., 'mongo:7.0'.
+        image: mongo:latest
+        ports:
+            - '27017:27017'
+        volumes:
+            - mongo-data:/data/db
+        networks:
+            - app-network
+
+    redis:
+        # Using 'latest' as you have it locally.
+        # For production, pin to a specific version e.g., 'redis:7-alpine'.
+        image: redis:latest
+        ports:
+            - '6379:6379'
+        networks:
+            - app-network
+
+volumes:
+    mongo-data:
+
+networks:
+    app-network:
+        driver: bridge
