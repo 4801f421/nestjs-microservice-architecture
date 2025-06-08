@@ -6,9 +6,11 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { UsersServiceModule } from './users-service.module';
 
 async function bootstrap() {
-    // Create a full NestJS application instance to access the DI container
     const app = await NestFactory.create(UsersServiceModule);
     const configService = app.get(ConfigService);
+    const logger = app.get(WINSTON_MODULE_NEST_PROVIDER); // Get logger instance once
+
+    app.useLogger(logger);
 
     // Connect this application as a microservice using the Redis transporter
     app.connectMicroservice({
@@ -19,18 +21,23 @@ async function bootstrap() {
         },
     });
 
-    // Use our custom Winston logger for all logs in this microservice
-    app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
+    // --- IMPROVEMENT: Enable graceful shutdown hooks ---
+    // This will ensure the app correctly closes database connections and other resources
+    // when the process receives a termination signal (e.g., from Docker).
+    app.enableShutdownHooks();
 
-    // Start all registered microservices and begin listening for incoming messages
+    // Start all registered microservices
     await app.startAllMicroservices();
 
-    // Optional: Also listen on an HTTP port for health checks or other purposes
+    // Optional: Also listen on an HTTP port
     const httpPort = configService.get('USERS_SERVICE_PORT');
     if (httpPort) {
         await app.listen(httpPort);
-        const logger = app.get(WINSTON_MODULE_NEST_PROVIDER);
         logger.log(`Users microservice is listening on port ${httpPort}...`);
+    } else {
+        logger.log(
+            'Users microservice is running and listening for messages...',
+        );
     }
 }
 bootstrap();

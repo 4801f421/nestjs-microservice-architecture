@@ -1,3 +1,4 @@
+// apps/users-service/src/users-service.module.ts
 import { Module } from '@nestjs/common';
 import { DatabaseModule, LoggerModule } from '@app/common';
 import { UsersModule } from './users/users.module';
@@ -6,7 +7,8 @@ import * as Joi from 'joi';
 
 @Module({
     imports: [
-        LoggerModule,
+        // It's best practice to list the main ConfigModule first,
+        // as other modules depend on the services it provides.
         NestConfigModule.forRoot({
             isGlobal: true,
             envFilePath: './apps/users-service/.env',
@@ -17,11 +19,11 @@ import * as Joi from 'joi';
                 USERS_SERVICE_PORT: Joi.number().required(),
             }),
         }),
+        LoggerModule,
         DatabaseModule.register({
             configKey: 'USERS_DB_URI',
             connectionName: 'users',
         }),
-        // Add the UsersModule here to connect everything
         UsersModule,
     ],
     controllers: [],
